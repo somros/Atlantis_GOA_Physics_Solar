@@ -18,6 +18,7 @@ select <- dplyr::select
 #read in Atlantis BGM
 atlantis_bgm <- read_bgm('GOA_WGS84_V4_final.bgm')
 atlantis_box <- atlantis_bgm %>% box_sf()
+atlantis_box <- atlantis_box %>% filter(boundary!=TRUE)
 mask <- atlantis_box %>% st_union() %>% st_as_sf()
 
 # read in ROMS grid 
