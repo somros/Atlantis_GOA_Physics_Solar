@@ -19,7 +19,11 @@ select <- dplyr::select
 atlantis_bgm <- read_bgm('GOA_WGS84_V4_final.bgm')
 atlantis_box <- atlantis_bgm %>% box_sf()
 atlantis_box <- atlantis_box %>% filter(boundary!=TRUE)
-mask <- atlantis_box %>% st_union() %>% st_as_sf()
+
+# added 4/12/2022
+atlantis_crs <- atlantis_bgm$extra$projection
+
+mask <- atlantis_box %>% st_union() %>% st_as_sf(crs = atlantis_crs)
 
 # read in ROMS grid 
 roms_grid_file <- 'C:/Users/Alberto Rovellini/Documents/GOA/ROMS/data/roms/NEP_grid_5a.nc'
@@ -40,7 +44,7 @@ roms_rho <- roms_grid %>% activate(latlon_rhogrd) %>% hyper_tibble() %>% select(
   mutate(rhoidx=row_number()) # add index
 
 # Add coordinates in the CRS used by the Atlantis mask.
-append_xy_coords <- function(lonlatdat, xyproj=crs(mask)@projargs, lon_col="lon_rho", lat_col="lat_rho"){
+append_xy_coords <- function(lonlatdat, xyproj=atlantis_crs, lon_col="lon_rho", lat_col="lat_rho"){
   lonlatdat %>% 
     st_as_sf(coords=c(lon_col, lat_col), crs=4326, remove=F) %>%  # convert to spatial object
     st_transform(xyproj) %>%  # convert to Atlantis coords
@@ -142,8 +146,16 @@ solar_complete <- data.frame(time=complete,
 model_origin <- as.POSIXct(0,origin='1990-01-01 12:00:00',tz='UTC') # may have to revisit this based on ROMS start
 
 solar_complete <- solar_complete %>% 
+  filter(time >= '2017-01-01 00:00:00', time <= '2017-12-31 12:00:00') 
+
+solar_complete <- solar_complete %>% # need this for 2017
   mutate(time=as.numeric(difftime(solar_complete[,1],model_origin)),
          value=as.numeric(formatC(value, format = 'f', digits = 5)))
+
+# added 4/12/2022
+# time column needs to be set to 0,1,2,...,364
+# the start time of solar is really important - will need to rework this when we have the final files
+solar_complete <- solar_complete %>% mutate(time = 0:364)
 
 # now write this out as .csv, and paste on top of it the following header:
 
@@ -173,10 +185,10 @@ solar_complete <- solar_complete %>%
 ## COLUMN2.missing_value  -999.000000
 ##
 
-write.table(solar_complete,'solar_goa_2017.ts',row.names = F, sep = ' ')
+write.table(solar_complete,'solar_goa_2017_correct.ts',row.names = F, sep = ' ')
 
 # View --------------------------------------------------------------------
 
 # place to have a look that the time series seems reasonable
 
-plot(solar_complete$time,solar_complete$value,type='l')
+# plot(solar_complete$time,solar_complete$value,type='l')
