@@ -145,17 +145,30 @@ solar_complete <- data.frame(time=complete,
 
 model_origin <- as.POSIXct(0,origin='1990-01-01 12:00:00',tz='UTC') # may have to revisit this based on ROMS start
 
-solar_complete <- solar_complete %>% 
-  filter(time >= '2017-01-01 00:00:00', time <= '2017-12-31 12:00:00') 
+# get year for this directory
+this_year <- solar_frame %>% mutate( year = year(date)) %>% group_by(year) %>% tally() %>% filter(n == max(n)) %>% pull(year)
 
-solar_complete <- solar_complete %>% # need this for 2017
+solar_complete <- solar_complete %>% 
+  filter(time >= as.POSIXct(paste0(this_year, '-01-01 00:00:00'),tz='UTC'), 
+         time <= as.POSIXct(paste0(this_year, '-12-31 12:00:00'),tz='UTC')) 
+
+# change time column to days since origin, and format values correctly
+solar_complete <- solar_complete %>%
   mutate(time=as.numeric(difftime(solar_complete[,1],model_origin)),
          value=as.numeric(formatC(value, format = 'f', digits = 5)))
 
 # added 4/12/2022
 # time column needs to be set to 0,1,2,...,364
 # the start time of solar is really important - will need to rework this when we have the final files
-solar_complete <- solar_complete %>% mutate(time = 0:364)
+# solar_complete <- solar_complete %>% mutate(time = 0:364)
+
+# write out
+write.csv(solar_complete, paste0('solar_goa_', this_year , '.csv'), row.names = F)
+
+
+
+
+# DO NOT RUN ANYTHING BELOW THIS POINT
 
 # now write this out as .csv, and paste on top of it the following header:
 
@@ -185,7 +198,7 @@ solar_complete <- solar_complete %>% mutate(time = 0:364)
 ## COLUMN2.missing_value  -999.000000
 ##
 
-write.table(solar_complete,'solar_goa_2017_correct.ts',row.names = F, sep = ' ')
+# write.table(solar_complete,'solar_goa_2017_correct.ts',row.names = F, sep = ' ')
 
 # View --------------------------------------------------------------------
 
