@@ -13,10 +13,16 @@ library(rbgm)
 
 select <- dplyr::select
 
+# Data --------------------------------------------------------------------
+
+bgm_file <- '../data/GOA_WGS84_V4_final.bgm' # Atlantis model geometry
+roms_grid_file <- '../data/NEP_grid_5a.nc' # ROMS grid
+roms_files <- list.files('F:/GOA/GOA_ROMS/NEP10K/2017/', pattern='nep5', full.names = T) # ROMS NetCDF output for one year
+
 # Prepare the spatial domain ----------------------------------------------
 
 #read in Atlantis BGM
-atlantis_bgm <- read_bgm('GOA_WGS84_V4_final.bgm')
+atlantis_bgm <- read_bgm(bgm_file)
 atlantis_box <- atlantis_bgm %>% box_sf()
 atlantis_box <- atlantis_box %>% filter(boundary!=TRUE)
 
@@ -26,7 +32,6 @@ atlantis_crs <- atlantis_bgm$extra$projection
 mask <- atlantis_box %>% st_union() %>% st_as_sf(crs = atlantis_crs)
 
 # read in ROMS grid 
-roms_grid_file <- 'C:/Users/Alberto Rovellini/Documents/GOA/ROMS/data/roms/NEP_grid_5a.nc'
 roms_grid <- tidync(roms_grid_file)
 
 #grid info
@@ -89,11 +94,10 @@ get_swrad <- function(variable, time_step){
   # take averages over the entire model domain
   # this step is problematic for solar, but this is how Atlantis works for now
   swrad_value <- mean(dat$swrad, na.rm=T)
+  return(swrad_value)
 }
 
 # prepare a list with as many entries as we have input files
-roms_files <- list.files('F:/GOA/GOA_ROMS/NEP10K/2017/', pattern='nep5', full.names = T)
-
 solar_frames_list <- vector(mode = 'list', length = length(roms_files))
 
 for(i in 1:length(solar_frames_list)){
