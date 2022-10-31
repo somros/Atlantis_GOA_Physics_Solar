@@ -20,9 +20,12 @@ solar_complete <- rbindlist(solar_list)
 # add the first 5 years at the start - replicate the first file
 temp <- read.csv(all_files[1])
 first_5 <- do.call("rbind", replicate(5, temp, simplify = FALSE))
-first_5[,1] <- 0:(nrow(first_5)-1)
+first_5[,1] <- 1:nrow(first_5)
 
 solar_complete <- rbind(first_5, solar_complete)
+
+# start from 0
+solar_complete[,1] <- solar_complete[,1]-1
 
 # write ts file
 header_file <- paste0('../output_loon/solar_historical.ts')
@@ -59,3 +62,4 @@ write.table(solar_complete, file = header_file, append = T, sep = " ", row.names
 # place to have a look that the time series seems reasonable
 
 plot(solar_complete$time,solar_complete$value,type='l')
+
