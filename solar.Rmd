@@ -144,7 +144,7 @@ rho_join %>%
   ggplot()+
   geom_sf(size = 0.1)+
   theme_minimal()+
-  labs(title = "CGOA 3K rho points overlapping with Ecopath mask")
+  labs(title = "NEP 10K rho points overlapping with Ecopath mask")
 ```
 
 Get indeces of rho, u, and v points that overlap with Atlantis geometry, to subset large ROMS files and reduce memory chokes

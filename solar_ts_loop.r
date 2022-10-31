@@ -96,9 +96,9 @@ get_swrad <- function(variable, time_step){
   return(swrad_value)
 }
 
-all_years <- list.dirs("/home/arovel/../../ahr0/hermann/goa-output/NEP_Data/")
+all_years <- list.dirs("/home/arovel/../../ahr0/hermann/goa-output/NEP_Data/", recursive = F)
 
-for(y in 1:all_years){
+for(y in 1:length(all_years)){
   
   roms_files <- list.files(all_years[y], pattern='nep5', full.names = T) # ROMS NetCDF output for one year
   
@@ -143,9 +143,20 @@ for(y in 1:all_years){
   
   ts <- unique(solar_frame$time_step)
   
-  t_0 <- as.POSIXct(ts[1],origin=epoch,tz='UTC') # this has to be specific to your ROMS, so check your origin and tz
-  t_end <- as.POSIXct(ts[length(ts)],origin=epoch,tz='UTC')
-  complete <- seq(from=t_0,to=t_end,by=60*60*24) # 12 hours is the target for HC, units from ts are in seconds
+  # get year for this directory
+  this_year <- solar_frame %>% mutate( year = year(date)) %>% group_by(year) %>% tally() %>% filter(n == max(n)) %>% pull(year)
+  
+  epoch <- "1900-01-01 00:00:00" #important, check that this is your correct start - keeping this generic as it changes a lot ROMS by ROMS
+  
+  # drop time steps that belong to other years
+  solar_frame <- solar_frame %>%
+    filter(date >= as.POSIXct(paste0(this_year, '-01-01 00:00:00'),tz='UTC'), 
+           date <= as.POSIXct(paste0(this_year, '-12-31 12:00:00'),tz='UTC'))
+  
+  # and use as t_0 and t_end Jan 1 and Dec 31, but they need to be in seconds
+  t_0 <- as.POSIXct(paste0(this_year, '-01-01 12:00:00'),origin=epoch,tz='UTC') # this has to be specific to your ROMS, so check your origin and tz
+  t_end <- as.POSIXct(paste0(this_year, '-12-31 12:00:00'),origin=epoch,tz='UTC')
+  complete <- seq(from=t_0,to=t_end,by=60*60*24) # 
   
   solar_complete <- data.frame(time=complete,
                                value=approx(solar_frame$date,solar_frame$swrad_value,xout = complete, rule = 2)$y)
@@ -153,13 +164,6 @@ for(y in 1:all_years){
   # change dates to days from 1990-01-01 (so in the end your first sime step will be 0)
   
   model_origin <- as.POSIXct(0,origin='1990-01-01 12:00:00',tz='UTC') # may have to revisit this based on ROMS start
-  
-  # get year for this directory
-  this_year <- solar_frame %>% mutate( year = year(date)) %>% group_by(year) %>% tally() %>% filter(n == max(n)) %>% pull(year)
-  
-  solar_complete <- solar_complete %>% 
-    filter(time >= as.POSIXct(paste0(this_year, '-01-01 00:00:00'),tz='UTC'), 
-           time <= as.POSIXct(paste0(this_year, '-12-31 12:00:00'),tz='UTC')) 
   
   # change time column to days since origin, and format values correctly
   solar_complete <- solar_complete %>%
@@ -172,5 +176,5 @@ for(y in 1:all_years){
   # solar_complete <- solar_complete %>% mutate(time = 0:364)
   
   # write out
-  write.csv(solar_complete, paste0('solar_goa_', this_year , '.csv'), row.names = F)
+  write.csv(solar_complete, paste0('solar_goa_test', this_year , '.csv'), row.names = F)
 }

@@ -17,7 +17,7 @@ select <- dplyr::select
 
 bgm_file <- '../data/GOA_WGS84_V4_final.bgm' # Atlantis model geometry
 roms_grid_file <- '../data/NEP_grid_5a.nc' # ROMS grid
-roms_files <- list.files('F:/GOA/GOA_ROMS/NEP10K/2017/', pattern='nep5', full.names = T) # ROMS NetCDF output for one year
+roms_files <- list.files('D:/GOA/GOA_ROMS/NEP10K/2017/', pattern='nep5', full.names = T) # ROMS NetCDF output for one year
 
 # Prepare the spatial domain ----------------------------------------------
 
@@ -67,6 +67,14 @@ min_xi_rho <- min(rho_join$xi_rho, na.rm = TRUE)
 max_xi_rho <- max(rho_join$xi_rho, na.rm = TRUE)
 min_eta_rho <- min(rho_join$eta_rho, na.rm = TRUE)
 max_eta_rho <- max(rho_join$eta_rho, na.rm = TRUE)
+
+# View grid to check we are extracting everything correctly
+# rho_join %>% 
+#   select(lon_rho, lat_rho) %>%
+#   st_set_geometry(NULL) %>%
+#   st_as_sf(coords = c('lon_rho','lat_rho'), crs = 4326) %>%
+#   ggplot()+
+#   geom_sf()
 
 # Extract solar -----------------------------------------------------------
 
@@ -138,9 +146,20 @@ solar_frame <- rbindlist(solar_frames_list)
 
 ts <- unique(solar_frame$time_step)
 
-t_0 <- as.POSIXct(ts[1],origin=epoch,tz='UTC') # this has to be specific to your ROMS, so check your origin and tz
-t_end <- as.POSIXct(ts[length(ts)],origin=epoch,tz='UTC')
-complete <- seq(from=t_0,to=t_end,by=60*60*24) # 12 hours is the target for HC, units from ts are in seconds
+# get year for this directory
+this_year <- solar_frame %>% mutate( year = year(date)) %>% group_by(year) %>% tally() %>% filter(n == max(n)) %>% pull(year)
+
+epoch <- "1900-01-01 00:00:00" #important, check that this is your correct start - keeping this generic as it changes a lot ROMS by ROMS
+
+# drop time steps that belong to other years
+solar_frame <- solar_frame %>%
+  filter(date >= as.POSIXct(paste0(this_year, '-01-01 00:00:00'),tz='UTC'), 
+         date <= as.POSIXct(paste0(this_year, '-12-31 12:00:00'),tz='UTC'))
+
+# and use as t_0 and t_end Jan 1 and Dec 31, but they need to be in seconds
+t_0 <- as.POSIXct(paste0(this_year, '-01-01 12:00:00'),origin=epoch,tz='UTC') # this has to be specific to your ROMS, so check your origin and tz
+t_end <- as.POSIXct(paste0(this_year, '-12-31 12:00:00'),origin=epoch,tz='UTC')
+complete <- seq(from=t_0,to=t_end,by=60*60*24) # 
 
 solar_complete <- data.frame(time=complete,
                              value=approx(solar_frame$date,solar_frame$swrad_value,xout = complete, rule = 2)$y)
@@ -148,13 +167,6 @@ solar_complete <- data.frame(time=complete,
 # change dates to days from 1990-01-01 (so in the end your first sime step will be 0)
 
 model_origin <- as.POSIXct(0,origin='1990-01-01 12:00:00',tz='UTC') # may have to revisit this based on ROMS start
-
-# get year for this directory
-this_year <- solar_frame %>% mutate( year = year(date)) %>% group_by(year) %>% tally() %>% filter(n == max(n)) %>% pull(year)
-
-solar_complete <- solar_complete %>% 
-  filter(time >= as.POSIXct(paste0(this_year, '-01-01 00:00:00'),tz='UTC'), 
-         time <= as.POSIXct(paste0(this_year, '-12-31 12:00:00'),tz='UTC')) 
 
 # change time column to days since origin, and format values correctly
 solar_complete <- solar_complete %>%
@@ -167,45 +179,4 @@ solar_complete <- solar_complete %>%
 # solar_complete <- solar_complete %>% mutate(time = 0:364)
 
 # write out
-write.csv(solar_complete, paste0('solar_goa_', this_year , '.csv'), row.names = F)
-
-
-
-
-# DO NOT RUN ANYTHING BELOW THIS POINT
-
-# now write this out as .csv, and paste on top of it the following header:
-
-# Solar radiation data as average for Atlantis GOA from NEP 10km ROMS
-#
-# Missing values have been deleted when gaps are small. They
-# were filled by linear interpolation.
-#
-# This file is 2017 data only
-#
-# Alberto Rovellini
-# AFSC/UW
-# January 25 2022
-#
-# daily data in the 2nd column 
-#
-## COLUMNS 2
-##
-## COLUMN1.name  Time
-## COLUMN1.long_name  Time
-## COLUMN1.units  days since 1990-01-01 12:00:00
-## COLUMN1.missing_value  -999.000000
-##
-## COLUMN2.name  swr
-## COLUMN2.long_name  Short wave radiation
-## COLUMN2.units  W m-2
-## COLUMN2.missing_value  -999.000000
-##
-
-# write.table(solar_complete,'solar_goa_2017_correct.ts',row.names = F, sep = ' ')
-
-# View --------------------------------------------------------------------
-
-# place to have a look that the time series seems reasonable
-
-# plot(solar_complete$time,solar_complete$value,type='l')
+write.csv(solar_complete, paste0('solar_goa_test', this_year , '.csv'), row.names = F)
