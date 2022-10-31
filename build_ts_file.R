@@ -63,3 +63,42 @@ write.table(solar_complete, file = header_file, append = T, sep = " ", row.names
 
 plot(solar_complete$time,solar_complete$value,type='l')
 
+
+# Check 2017 --------------------------------------------------------------
+# DO NOT RUN
+
+# # this section reads the loon output for 2017 and compares it to the original ts file we have been using
+# this_file <- all_files[grep('2017', all_files)]
+# 
+# solar_2017 <- read.csv(this_file)
+# 
+# solar_2017[,1] <- 0:(nrow(solar_2017)-1)
+# 
+# header_file <- paste0('../output_loon/solar_2017_check.ts')
+# 
+# cat("# Solar radiation data as average for Atlantis GOA from NEP 10km ROMS\n", file = header_file, append = T)
+# cat("#\n", file = header_file, append = T)
+# cat("# Missing values have been deleted when gaps are small. They were filled by linear interpolation.\n", file = header_file, append = T)
+# cat("#\n", file = header_file, append = T)
+# cat("# This data is 1995-2020; we replicate 1995 for 1990-1994. \n", file = header_file, append = T)
+# cat("#\n", file = header_file, append = T)
+# cat("# Alberto Rovellini\n", file = header_file, append = T)
+# cat("# AFSC/UW\n", file = header_file, append = T)
+# cat("# October 31 2022\n", file = header_file, append = T)
+# cat("#\n", file = header_file, append = T)
+# cat("# daily data in the 2nd column\n", file = header_file, append = T)
+# cat("#\n", file = header_file, append = T)
+# cat("## COLUMNS 2\n", file = header_file, append = T)
+# cat("##\n", file = header_file, append = T)
+# cat("## COLUMN1.name  Time\n", file = header_file, append = T)
+# cat("## COLUMN1.long_name  Time\n", file = header_file, append = T)
+# cat("## COLUMN1.units  days since 1990-01-01 12:00:00\n", file = header_file, append = T)
+# cat("## COLUMN1.missing_value  -999.000000\n", file = header_file, append = T)
+# cat("##\n", file = header_file, append = T)
+# cat("## COLUMN2.name  swr\n", file = header_file, append = T)
+# cat("## COLUMN2.long_name  Short wave radiation\n", file = header_file, append = T)
+# cat("## COLUMN2.units  W m-2\n", file = header_file, append = T)
+# cat("## COLUMN2.missing_value  -999.000000\n", file = header_file, append = T)
+# cat("##\n", file = header_file, append = T)
+# 
+# write.table(solar_2017, file = header_file, append = T, sep = " ", row.names = FALSE, col.names = FALSE)
