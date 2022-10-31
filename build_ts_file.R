@@ -7,15 +7,24 @@ select <- dplyr::select
 
 all_files <- list.files('../output_loon/', pattern = '.csv', full.names = T)
 
-solar_complete <- rbindlist(lapply(all_files, read.csv))
+solar_list <- lapply(all_files, read.csv)
 
-# add the first 5 years at the start
-temp <- read.csv(all_files[2])
+# check that length of the files checks out - 365 or 366 (for leap years)
+check <- unlist(lapply(solar_list, nrow))
+
+#TODO: decide what to do with leap years
+
+# tie them all together
+solar_complete <- rbindlist(solar_list)
+
+# add the first 5 years at the start - replicate the first file
+temp <- read.csv(all_files[1])
 first_5 <- do.call("rbind", replicate(5, temp, simplify = FALSE))
 first_5[,1] <- 0:(nrow(first_5)-1)
 
-solar_complete
+solar_complete <- rbind(first_5, solar_complete)
 
+# write ts file
 header_file <- paste0('../output_loon/solar_historical.ts')
 
 cat("# Solar radiation data as average for Atlantis GOA from NEP 10km ROMS\n", file = header_file, append = T)
